@@ -9,6 +9,11 @@ func ServiceContext() context.Context {
 	return context.Background()
 }
 
+func ServiceContextWithValue(key interface{}, value interface{}) context.Context {
+	ctx := context.WithValue(context.Background(), key, value)
+	return ctx
+}
+
 func ServiceContextWithCancel() (context.Context, context.CancelFunc) {
 	ctx, cbCancel := context.WithCancel(context.Background())
 	return ctx, cbCancel
