@@ -1,9 +1,29 @@
 package go_service_mgr
 
 import (
+	"log"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestCreateRegSvcClient(t *testing.T) {
-	// var logger = log.New(os.Stdout, "", 5)
+	logger := log.New(os.Stdout, "", log.Ldate|log.Lmicroseconds)
+
+	svcCli, err := CreateRegSvcClient([]string{"127.0.0.1:12379", "127.0.0.1:22379", "127.0.0.1:32379"}, 3)
+	if err != nil {
+		logger.Println("CreateRegSvcClient, err:", err)
+		return
+	}
+	defer svcCli.DisposeRegSvcClient()
+
+	cbCancel, err := svcCli.RegisterService(5, 30, "", "test", "key", "value", logger)
+	if err != nil {
+		logger.Println("RegisterService, err:", err)
+		return
+	}
+
+	time.Sleep(300 * time.Second)
+	cbCancel()
+	time.Sleep(10 * time.Second)
 }

@@ -26,8 +26,8 @@ func CreateRegSvcClient(endpoints []string, dialTimeout uint64) (*RegSvcClient, 
 	}, nil
 }
 
-func DisposeRegSvcClient(regSvcClient *RegSvcClient) error {
-	err := regSvcClient.client.Close()
+func (c *RegSvcClient) DisposeRegSvcClient() error {
+	err := c.client.Close()
 	if err != nil {
 		return err
 	}
