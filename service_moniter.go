@@ -1,1 +1,1 @@
-package go_service_mgr
+package go_service_util

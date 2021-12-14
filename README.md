@@ -1,4 +1,4 @@
-# go-service-mgr
+# go-service-util
 
 
 

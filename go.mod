@@ -1,4 +1,4 @@
-module go-service-mgr
+module go_service_util
 
 go 1.14
 
