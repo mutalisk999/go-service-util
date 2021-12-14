@@ -84,7 +84,7 @@ func keepAliveCallBack(keepAliveRespChan <-chan *v3.LeaseKeepAliveResponse, ctx 
 			if logger != nil {
 				logger.Printf("Cancel Service [%s] at %s", key, time.Now().String())
 			}
-			break
+			return
 		}
 	}
 }
