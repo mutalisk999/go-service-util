@@ -47,6 +47,11 @@ func (c *RegSvcClient) RegisterService(ctxOpTimeout uint64, serviceTTL uint64,
 		serviceTTL = 30
 	}
 
+	if ctxOpTimeout == 0 {
+		// default operation timeout
+		ctxOpTimeout = 5
+	}
+
 	kv := v3.NewKV(c.client)
 	lease := v3.NewLease(c.client)
 
