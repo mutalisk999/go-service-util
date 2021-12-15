@@ -1,12 +1,17 @@
 package go_service_util
 
 import (
+	"context"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	v3 "go.etcd.io/etcd/client/v3"
+	"golang.org/x/sync/syncmap"
+	"log"
 	"time"
 )
 
 type MonSvcClient struct {
 	client *v3.Client
+	svcMap syncmap.Map
 }
 
 func CreateMonSvcClient(endpoints []string, dialTimeout uint64) (*MonSvcClient, error) {
@@ -28,10 +33,20 @@ func (c *MonSvcClient) DisposeMonSvcClient() error {
 	if err != nil {
 		return err
 	}
+	c.svcMap = syncmap.Map{}
 	return nil
 }
 
-func (c *MonSvcClient) GetService(ctxOpTimeout uint64, keyPrefix string) (map[string]string, error) {
+func (c *MonSvcClient) GetService() map[string]string {
+	svcMapRet := make(map[string]string)
+	c.svcMap.Range(func(k interface{}, v interface{}) bool {
+		svcMapRet[k.(string)] = v.(string)
+		return true
+	})
+	return svcMapRet
+}
+
+func (c *MonSvcClient) MonitorService(ctxOpTimeout uint64, keyPrefix string, logger *log.Logger) (context.CancelFunc, error) {
 	if keyPrefix == "" {
 		// default key prefix
 		keyPrefix = "/etcd_services"
@@ -52,12 +67,48 @@ func (c *MonSvcClient) GetService(ctxOpTimeout uint64, keyPrefix string) (map[st
 		return nil, nil
 	}
 
-	svcMap := make(map[string]string)
 	for _, kv := range getResp.Kvs {
 		v := kv.Value
 		if v != nil {
-			svcMap[string(kv.Key)] = string(kv.Value)
+			c.svcMap.Store(string(kv.Key), string(kv.Value))
 		}
 	}
-	return svcMap, nil
+
+	ctx, cbCancel := ServiceContextWithCancel()
+	watchChan := c.client.Watch(ctx, keyPrefix, v3.WithPrefix())
+
+	go c.watcherCallBack(watchChan, ctx, keyPrefix, logger)
+	return cbCancel, nil
+}
+
+func (c *MonSvcClient) watcherCallBack(watchChan v3.WatchChan, ctx context.Context, keyPrefix string, logger *log.Logger) {
+	for {
+		select {
+		case ret := <-watchChan:
+			if ret.Events == nil {
+				continue
+			}
+			for _, ev := range ret.Events {
+				switch ev.Type {
+				case mvccpb.PUT:
+					c.svcMap.Store(string(ev.Kv.Key), string(ev.Kv.Value))
+					if logger != nil {
+						logger.Printf("Service Watcher Put [%s] | [%s] at %s",
+							string(ev.Kv.Key), string(ev.Kv.Value), time.Now().String())
+					}
+				case mvccpb.DELETE:
+					c.svcMap.Delete(string(ev.Kv.Key))
+					if logger != nil {
+						logger.Printf("Service Watcher Delete [%s] at %s",
+							string(ev.Kv.Key), time.Now().String())
+					}
+				}
+			}
+		case <-ctx.Done():
+			if logger != nil {
+				logger.Printf("Cancel Service Watcher [%s] at %s", keyPrefix, time.Now().String())
+			}
+			return
+		}
+	}
 }

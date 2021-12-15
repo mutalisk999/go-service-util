@@ -87,7 +87,7 @@ func keepAliveCallBack(keepAliveRespChan <-chan *v3.LeaseKeepAliveResponse, ctx 
 			}
 		case <-ctx.Done():
 			if logger != nil {
-				logger.Printf("Cancel Service [%s] at %s", key, time.Now().String())
+				logger.Printf("[Cancel] Keep Alive Service [%s] at %s", key, time.Now().String())
 			}
 			return
 		}
