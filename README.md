@@ -10,3 +10,9 @@
 ```
 go test -v -run TestCreateRegSvcClient
 ```
+
+* service watcher 
+
+```
+go test -v -run TestCreateMonSvcClient
+```
