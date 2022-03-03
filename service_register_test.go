@@ -10,7 +10,7 @@ import (
 func TestCreateRegSvcClient(t *testing.T) {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Lmicroseconds)
 
-	svcCli, err := CreateRegSvcClient([]string{"127.0.0.1:12379", "127.0.0.1:22379", "127.0.0.1:32379"}, 3)
+	svcCli, err := CreateRegSvcClient([]string{"http://127.0.0.1:12379", "http://127.0.0.1:22379", "http://127.0.0.1:32379"}, nil, nil, 3)
 	if err != nil {
 		logger.Println("CreateRegSvcClient, err:", err)
 		return

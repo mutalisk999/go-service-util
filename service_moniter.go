@@ -2,6 +2,7 @@ package go_service_util
 
 import (
 	"context"
+	"crypto/tls"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/sync/syncmap"
@@ -14,11 +15,22 @@ type MonSvcClient struct {
 	svcMap syncmap.Map
 }
 
-func CreateMonSvcClient(endpoints []string, dialTimeout uint64) (*MonSvcClient, error) {
+type MonSvcAuth struct {
+	Username string
+	Password string
+}
+
+func CreateMonSvcClient(endpoints []string, tlsConfig *tls.Config, authConfig *MonSvcAuth, dialTimeout uint64) (*MonSvcClient, error) {
 	config := v3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: time.Duration(dialTimeout) * time.Second,
+		TLS:         tlsConfig,
 	}
+	if authConfig != nil {
+		config.Username = authConfig.Username
+		config.Password = authConfig.Password
+	}
+
 	client, err := v3.New(config)
 	if err != nil {
 		return nil, err
