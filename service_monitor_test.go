@@ -17,7 +17,7 @@ func TestCreateMonSvcClient(t *testing.T) {
 	}
 	defer svcCli.DisposeMonSvcClient()
 
-	cbCancel, err := svcCli.MonitorService(3, "", logger)
+	cbCancel, err := svcCli.MonitorService(3, "", logger, nil, nil)
 	if err != nil {
 		logger.Println("MonitorService, err:", err)
 		return

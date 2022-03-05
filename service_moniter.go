@@ -58,7 +58,8 @@ func (c *MonSvcClient) GetService() map[string]string {
 	return svcMapRet
 }
 
-func (c *MonSvcClient) MonitorService(ctxOpTimeout uint64, keyPrefix string, logger *log.Logger) (context.CancelFunc, error) {
+func (c *MonSvcClient) MonitorService(ctxOpTimeout uint64, keyPrefix string, logger *log.Logger,
+	putCallBack func(string, string), deleteCallBack func(string)) (context.CancelFunc, error) {
 	if keyPrefix == "" {
 		// default key prefix
 		keyPrefix = "/etcd_services"
@@ -89,11 +90,12 @@ func (c *MonSvcClient) MonitorService(ctxOpTimeout uint64, keyPrefix string, log
 	ctx, cbCancel := ServiceContextWithCancel()
 	watchChan := c.client.Watch(ctx, keyPrefix, v3.WithPrefix())
 
-	go c.watcherCallBack(watchChan, ctx, keyPrefix, logger)
+	go c.watcherCallBack(watchChan, ctx, keyPrefix, logger, putCallBack, deleteCallBack)
 	return cbCancel, nil
 }
 
-func (c *MonSvcClient) watcherCallBack(watchChan v3.WatchChan, ctx context.Context, keyPrefix string, logger *log.Logger) {
+func (c *MonSvcClient) watcherCallBack(watchChan v3.WatchChan, ctx context.Context, keyPrefix string, logger *log.Logger,
+	putCallBack func(string, string), deleteCallBack func(string)) {
 	for {
 		select {
 		case ret := <-watchChan:
@@ -104,12 +106,18 @@ func (c *MonSvcClient) watcherCallBack(watchChan v3.WatchChan, ctx context.Conte
 				switch ev.Type {
 				case mvccpb.PUT:
 					c.svcMap.Store(string(ev.Kv.Key), string(ev.Kv.Value))
+					if putCallBack != nil {
+						putCallBack(string(ev.Kv.Key), string(ev.Kv.Value))
+					}
 					if logger != nil {
 						logger.Printf("Service Watcher Put [%s] | [%s] at %s",
 							string(ev.Kv.Key), string(ev.Kv.Value), time.Now().String())
 					}
 				case mvccpb.DELETE:
 					c.svcMap.Delete(string(ev.Kv.Key))
+					if deleteCallBack != nil {
+						deleteCallBack(string(ev.Kv.Key))
+					}
 					if logger != nil {
 						logger.Printf("Service Watcher Delete [%s] at %s",
 							string(ev.Kv.Key), time.Now().String())
