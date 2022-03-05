@@ -84,6 +84,9 @@ func (c *MonSvcClient) MonitorService(ctxOpTimeout uint64, keyPrefix string, log
 		v := kv.Value
 		if v != nil {
 			c.svcMap.Store(string(kv.Key), string(kv.Value))
+			if putCallBack != nil {
+				putCallBack(string(kv.Key), string(kv.Value))
+			}
 		}
 	}
 
